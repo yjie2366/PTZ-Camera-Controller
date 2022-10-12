@@ -16,7 +16,8 @@ import  threading
 import signal
 import sys
 
-import libcamera
+#import libcamera
+import picamera2 as pc2
 
 # def signal_handler(sig, frame):
 #     print('You pressed Ctrl+C!')
@@ -51,6 +52,7 @@ def gstreamer_pipeline(
         )
     )
 
+# threading.Thread class inheritance 
 class FrameReader(threading.Thread):
     queues = []
     _running = True
@@ -63,13 +65,14 @@ class FrameReader(threading.Thread):
     def run(self):
         while self._running:
             # _, frame = self.camera.read()
-            ret, data = self.camera.readFrame()
-            if not ret:
+            #ret, data = self.camera.readFrame()
+            image = self.camera.capture_array()
+            if image.size == 0:
                 continue
             while self.queues:
                 queue = self.queues.pop()
-                queue.put(data.imageData)
-            self.camera.returnFrameBuffer(data)
+                queue.put(image)
+            #self.camera.returnFrameBuffer(data)
     
     def addQueue(self, queue):
         self.queues.append(queue)
@@ -113,18 +116,27 @@ class Camera(object):
 
     def open_camera(self, width=640, height=360, framerate=30):
         # self.cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0, display_width=width, display_height=height), cv2.CAP_GSTREAMER)\
-        self.cam = libcamera.libcamera()
-        ret = self.cam.initCamera(width, height, libcamera.PixelFormat.RGB888, buffercount=4, rotation=0)
-        # if not self.cap.isOpened():
-        #     raise RuntimeError("Failed to open camera!")
-        if not ret:
-            # Turn on the camera
-            ret = self.cam.startCamera()
-            # Set frame rate
-            frame_time = 1000000 // framerate
-            self.cam.set(libcamera.FrameDurationLimits, [frame_time, frame_time])
-        else:
-            raise RuntimeError("Failed to open camera!")
+       # self.cam = libcamera.libcamera()
+        self.cam = pc2.Picamera2()
+	# set framerate
+        #ret = self.cam.create_preview_configuration(controls={"FrameDurationLimits": (1000000, 1000000)})
+        #ret = self.cam.create_preview_configuration(main={"format": 'XRGB8888'})
+        ret = self.cam.create_preview_configuration()
+        self.cam.configure(ret)
+
+#        ret = self.cam.initCamera(width, height, libcamera.PixelFormat.RGB888, buffercount=4, rotation=0)
+#         if not self.cap.isOpened():
+#             raise RuntimeError("Failed to open camera!")
+#        if not ret:
+#        if 1:
+#            # Turn on the camera
+#            #ret = self.cam.startCamera()
+#            # Set frame rate
+#            pass
+#            #frame_time = 1000000 // framerate
+#            #self.cam.set(libcamera.FrameDurationLimits, [frame_time, frame_time])
+#        else:
+#            raise RuntimeError("Failed to open camera!")
 
         if self.frame_reader == None:
             self.frame_reader = FrameReader(self.cam, "")
@@ -136,22 +148,26 @@ class Camera(object):
         return self.frame_reader.getFrame(timeout)
 
     def start_preview(self):
-        self.previewer.daemon = True
-        self.previewer.start_preview()
+        #self.previewer.daemon = True
+        #self.previewer.start_preview()
+        self.cam.start_preview(True)
+        self.cam.start()
 
     def stop_preview(self):
-        self.previewer.stop_preview()
-        self.previewer.join()
-        self.cam.stopCamera()
+    #    self.previewer.stop_preview()
+    #    self.previewer.join()
+        #self.cam.stopCamera()
+        self.cam.stop_preview()
     
     def close(self):
-        self.frame_reader.stop()
+    #    self.frame_reader.stop()
         # self.cap.release()
-        self.cam.closeCamera()
+        #self.cam.closeCamera()
+        self.cam.stop()
 
 if __name__ == "__main__":
     camera = Camera()
     camera.start_preview()
-    time.sleep(10)
+    time.sleep(30)
     camera.stop_preview()
     camera.close()

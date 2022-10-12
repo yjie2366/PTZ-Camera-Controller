@@ -111,8 +111,10 @@ def RenderMiddleText(stdscr,k,focuser):
 def parseKey(k,focuser,auto_focus,camera):
     global image_count
     motor_step  = 5
-    focus_step  = 5
-    zoom_step   = 5
+    #focus_step  = 5
+    #zoom_step   = 5
+    focus_step  = 100
+    zoom_step   = 1000
     if k == ord('s'):
         focuser.set(Focuser.OPT_MOTOR_Y,focuser.get(Focuser.OPT_MOTOR_Y) + motor_step)
     elif k == ord('w'):
@@ -141,7 +143,8 @@ def parseKey(k,focuser,auto_focus,camera):
     #     pass
     elif k == ord('c'):
         #save image to file.
-        cv2.imwrite("image{}.jpg".format(image_count), camera.getFrame())
+# Just for test. Remember to uncomment by Jie
+#        cv2.imwrite("image{}.jpg".format(image_count), camera.getFrame())
         image_count += 1
 
 
@@ -198,14 +201,15 @@ def draw_menu(stdscr, camera, i2c_bus):
 def main():
 
     #open camera
-    camera = Camera()
+    #camera = Camera()
+    camera = 0
     #open camera preview
-    camera.start_preview()
+    #camera.start_preview()
 
     curses.wrapper(draw_menu, camera, 1)
 
-    camera.stop_preview()
-    camera.close()
+    #camera.stop_preview()
+    #camera.close()
 
     
 
